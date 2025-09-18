@@ -41,7 +41,6 @@ label{display:block;margin-top:8px;font-weight:500;}
     <button class="print-btn" onclick="window.print()">Print Invoice</button>
     <button class="clear-btn" id="clear-invoice">Clear Invoice</button>
 
-    <!-- unified controls line -->
     <div class="controls-line">
       <button id="add-row">+ Row</button>
       <button id="del-row">- Row</button>
@@ -112,53 +111,22 @@ label{display:block;margin-top:8px;font-weight:500;}
 
 <script>
 (function(){
-  const LS_KEY="invoiceDataV2";
   const invoiceDateEl=document.getElementById('invoice_date');
   const logoEl=document.getElementById('logo');
   const tbody=document.querySelector('#tbl tbody');
   const thead=document.querySelector('#tbl thead tr');
 
-  // set current date default
+  // Set current date default
   const now=new Date();
   invoiceDateEl.textContent=now.toLocaleDateString();
   document.getElementById('invoice-date-input').valueAsDate=now;
 
-  // save function (includes logo as base64)
-  function saveInvoice(){
-    const data={
-      companyTitle:document.getElementById('company_title').textContent,
-      companyAddr:document.getElementById('company_addr').textContent,
-      invoiceNo:document.getElementById('invoice_no').textContent,
-      invoiceDate:document.getElementById('invoice_date').textContent,
-      table:document.getElementById('tbl').innerHTML,
-      logoSrc:logoEl.querySelector('img')?logoEl.querySelector('img').src:null
-    };
-    localStorage.setItem(LS_KEY,JSON.stringify(data));
+  function saveInvoice() {
+    // Offline version: do nothing for localStorage
   }
 
-  // restore
-  const saved=localStorage.getItem(LS_KEY);
-  if(saved){
-    const d=JSON.parse(saved);
-    document.getElementById('company_title').textContent=d.companyTitle;
-    document.getElementById('company_addr').textContent=d.companyAddr;
-    document.getElementById('invoice_no').textContent=d.invoiceNo;
-    invoiceDateEl.textContent=d.invoiceDate;
-    document.getElementById('tbl').innerHTML=d.table;
-    if(d.logoSrc){
-      logoEl.innerHTML='';
-      const img=document.createElement('img');
-      img.src=d.logoSrc;
-      logoEl.appendChild(img);
-    }
-    document.getElementById('company-name').value=d.companyTitle;
-    document.getElementById('company-address').value=d.companyAddr;
-    document.getElementById('invoice-number').value=d.invoiceNo;
-  }
-
-  // clear but keep logo/company details
+  // Clear invoice table
   document.getElementById('clear-invoice').addEventListener('click',()=>{
-    // only reset table & invoice number/date, keep company & logo
     document.getElementById('invoice_no').textContent='001';
     document.getElementById('invoice-number').value='001';
     const today=new Date();
@@ -174,9 +142,9 @@ label{display:block;margin-top:8px;font-weight:500;}
       }
       tbody.appendChild(tr);
     }
-    saveInvoice();
   });
 
+  // Logo upload
   document.getElementById('logo-upload').addEventListener('change',e=>{
     const file=e.target.files[0]; if(!file) return;
     const reader=new FileReader();
@@ -184,11 +152,11 @@ label{display:block;margin-top:8px;font-weight:500;}
       logoEl.innerHTML='';
       const img=document.createElement('img'); img.src=ev.target.result;
       logoEl.appendChild(img);
-      saveInvoice();
     };
     reader.readAsDataURL(file);
   });
 
+  // Add/delete rows
   document.getElementById('add-row').addEventListener('click',()=>{
     const tr=document.createElement('tr');
     for(let i=0;i<thead.children.length;i++){
@@ -196,37 +164,31 @@ label{display:block;margin-top:8px;font-weight:500;}
       tr.appendChild(td);
     }
     tbody.appendChild(tr);
-    saveInvoice();
   });
-
   document.getElementById('del-row').addEventListener('click',()=>{
     if(tbody.children.length>1){
       tbody.removeChild(tbody.lastChild);
-      saveInvoice();
     }
   });
 
+  // Add/delete columns
   document.getElementById('add-col').addEventListener('click',()=>{
-    const th=document.createElement('th');
-    th.contentEditable=true;
-    th.textContent="New Column";
+    const th=document.createElement('th'); th.contentEditable=true; th.textContent="New Column";
     thead.appendChild(th);
     tbody.querySelectorAll('tr').forEach(r=>{
       const td=document.createElement('td'); td.contentEditable=true; r.appendChild(td);
     });
-    saveInvoice();
   });
-
   document.getElementById('del-col').addEventListener('click',()=>{
     if(thead.children.length>1){
       thead.removeChild(thead.lastChild);
       tbody.querySelectorAll('tr').forEach(r=>{
         if(r.children.length>1) r.removeChild(r.lastChild);
       });
-      saveInvoice();
     }
   });
 
+  // Sync input fields
   ['company-name','company-address','invoice-number','invoice-date-input']
   .forEach(id=>{
     document.getElementById(id).addEventListener('input',()=>{
@@ -240,11 +202,8 @@ label{display:block;margin-top:8px;font-weight:500;}
         const d=new Date(document.getElementById('invoice-date-input').value);
         invoiceDateEl.textContent=d.toLocaleDateString();
       }
-      saveInvoice();
     });
   });
-
-  document.getElementById('invoice-root').addEventListener('input', saveInvoice);
 })();
 </script>
 </body>
