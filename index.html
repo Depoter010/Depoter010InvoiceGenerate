@@ -1,1 +1,251 @@
-<!doctype html> <html lang="en"> <head> <meta charset="utf-8"> <meta name="viewport" content="width=device-width,initial-scale=1"> <title>Invoice Generator</title> <style> body { margin: 0; padding: 0; font-family: Arial, sans-serif; background: #f7f7f7; } .app { max-width: 1000px; margin: 10px auto; padding: 10px; display: flex; gap: 20px; } button, input, textarea, select { padding: 6px; border-radius: 4px; border: 1px solid #ccc; font-size: 14px; } .card { background: #fff; padding: 15px; border-radius: 6px; margin-bottom: 10px; border: 1px solid #ddd; width: 300px; flex-shrink: 0; } .invoice-wrapper { background: #fff; padding: 15px; border-radius: 6px; border: 1px solid #ddd; position: relative; width: 210mm; height: 297mm; box-sizing: border-box; flex-grow: 1; display: flex; flex-direction: column; } .invoice-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; } .company { display: flex; gap: 10px; align-items: center; } .logo { width: 80px; height: 60px; border: 1px dashed #aaa; display: flex; align-items: center; justify-content: center; color: #999; overflow: hidden; } .logo img { max-width: 100%; max-height: 100%; object-fit: contain; } table { width: 100%; border-collapse: collapse; margin-top: 10px; flex-grow: 1; } th, td { border: 1px solid #ccc; padding: 6px; font-size: 13px; vertical-align: top; } th { background: #f0f0f0; } td[contenteditable] { min-height: 20px; } .controls { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; } .controls button { flex: 1; min-width: 80px; } .signature { margin-top: auto; padding-top: 20px; width: 100%; display: flex; justify-content: space-between; gap: 10px; } .sig-box { border-top: 1px solid #999; padding-top: 4px; text-align: center; min-width: 140px; flex: 1; } input, textarea, select { width: 100%; box-sizing: border-box; margin-top: 3px; } label { display: block; margin-top: 8px; font-weight: 500; } .print-btn { margin-bottom: 10px; padding: 8px 12px; font-size: 14px; cursor: pointer; width: 100%; } .column-controls { display: flex; gap: 5px; margin-top: 8px; } .column-controls select { flex: 2; } .column-controls button { flex: 1; } @media print { body, .invoice-wrapper { margin: 0; padding: 0; box-shadow: none; width: 210mm; height: 297mm; } .app { display: block; } .card, .print-btn { display: none; } table, th, td { border: 1px solid #000; } .sig-box { border-top: 1px solid #000; } } </style> </head> <body> <div class="app"> <div class="card"> <button class="print-btn" onclick="window.print()">Print Invoice</button> <div> <label>Company Name</label> <input id="company-name" placeholder="Company Name"> </div> <div> <label>Company Address</label> <textarea id="company-address" rows="2" placeholder="Company Address"></textarea> </div> <div> <label>Logo Upload</label> <input type="file" id="logo-upload" accept="image/*"> </div> <label>Table Controls</label> <div class="controls"> <button id="add-row">+ Row</button> <button id="del-row">- Row</button> </div> <div class="column-controls"> <select id="column-select"> <option value="item">Item Column</option> <option value="description">Description Column</option> <option value="qty">Quantity Column</option> <option value="price">Price Column</option> </select> <button id="add-col">+ Col</button> </div> <div class="controls"> <button id="del-col">- Col</button> </div> <div> <label>Invoice Number</label> <input id="invoice-number" placeholder="Invoice #" value="001"> </div> <div> <label>Invoice Date</label> <input type="date" id="invoice-date-input"> </div> </div> <div class="invoice-wrapper" id="invoice-root"> <div class="invoice-header"> <div class="company"> <div class="logo" id="logo">Logo</div> <div> <div contenteditable id="company_title">Your Company</div> <div id="company_addr" style="color:#666;font-size:12px">Company Address</div> </div> </div> <div> <div>Invoice #: <span contenteditable id="invoice_no">001</span></div> <div style="color:#666;font-size:12px">Date: <span id="invoice_date"></span></div> </div> </div> <table id="tbl"> <thead> <tr> <th contenteditable>Item</th> <th contenteditable>Description</th> <th contenteditable>Qty</th> <th contenteditable>Price</th> </tr> </thead> <tbody> <tr><td contenteditable></td><td contenteditable></td><td contenteditable></td><td contenteditable></td></tr> <tr><td contenteditable></td><td contenteditable></td><td contenteditable></td><td contenteditable></td></tr> <tr><td contenteditable></td><td contenteditable></td><td contenteditable></td><td contenteditable></td></tr> </tbody> </table> <div class="signature"> <div class="sig-box"> <div contenteditable>Receiver Name</div> </div> <div class="sig-box"> Signature<br><br> </div> <div class="sig-box"> <div contenteditable>Contact Information</div> </div> </div> </div> </div> <script> (function(){ const invoiceDate = document.getElementById('invoice_date'); const logoElement = document.getElementById('logo'); const tbody = document.querySelector('#tbl tbody'); const thead = document.querySelector('#tbl thead tr'); const columnSelect = document.getElementById('column-select'); // Set current date as default const now = new Date(); invoiceDate.textContent = now.toLocaleDateString(); document.getElementById('invoice-date-input').valueAsDate = now; // Logo upload functionality document.getElementById('logo-upload').addEventListener('change', function(e){ const file = e.target.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(ev){ logoElement.innerHTML=''; const img=document.createElement('img'); img.src=ev.target.result; logoElement.appendChild(img); }; reader.readAsDataURL(file); }); // Add row functionality document.getElementById('add-row').addEventListener('click', ()=>{ const tr=document.createElement('tr'); const colCount = thead.children.length; for(let i=0; i<colCount; i++){ const td=document.createElement('td'); td.contentEditable=true; tr.appendChild(td); } tbody.appendChild(tr); }); // Delete row functionality document.getElementById('del-row').addEventListener('click', ()=>{ if(tbody.children.length > 1) { tbody.removeChild(tbody.lastChild); } }); // Add column functionality document.getElementById('add-col').addEventListener('click', ()=>{ const colType = columnSelect.value; let headerText = "New Column"; switch(colType) { case 'item': headerText = "Item"; break; case 'description': headerText = "Description"; break; case 'qty': headerText = "Qty"; break; case 'price': headerText = "Price"; break; } // Add header column const newTh = document.createElement('th'); newTh.contentEditable = true; newTh.textContent = headerText; thead.appendChild(newTh); // Add column to all rows const rows = tbody.querySelectorAll('tr'); rows.forEach(row => { const newTd = document.createElement('td'); newTd.contentEditable = true; row.appendChild(newTd); }); }); // Delete column functionality document.getElementById('del-col').addEventListener('click', ()=>{ if(thead.children.length > 1) { // Remove header column thead.removeChild(thead.lastChild); // Remove column from all rows const rows = tbody.querySelectorAll('tr'); rows.forEach(row => { if(row.children.length > 1) { row.removeChild(row.lastChild); } }); } }); // Company name and address binding document.getElementById('company-name').addEventListener('input', e => { document.getElementById('company_title').textContent = e.target.value || 'Your Company'; }); document.getElementById('company-address').addEventListener('input', e => { document.getElementById('company_addr').textContent = e.target.value || 'Company Address'; }); // Invoice number binding document.getElementById('invoice-number').addEventListener('input', e => { document.getElementById('invoice_no').textContent = e.target.value || '001'; }); // Invoice date binding document.getElementById('invoice-date-input').addEventListener('input', e => { const date = new Date(e.target.value); invoiceDate.textContent = date.toLocaleDateString(); }); })(); </script> </body> </html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Invoice Generator</title>
+<style>
+body{margin:0;padding:0;font-family:Arial, sans-serif;background:#f7f7f7;}
+.app{max-width:1000px;margin:10px auto;padding:10px;display:flex;gap:20px;}
+button,input,textarea,select{padding:6px;border-radius:4px;border:1px solid #ccc;font-size:14px;}
+.card{background:#fff;padding:15px;border-radius:6px;margin-bottom:10px;border:1px solid #ddd;width:300px;flex-shrink:0;}
+.invoice-wrapper{background:#fff;padding:15px;border-radius:6px;border:1px solid #ddd;position:relative;width:210mm;height:297mm;box-sizing:border-box;flex-grow:1;display:flex;flex-direction:column;}
+.invoice-header{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;}
+.company{display:flex;gap:10px;align-items:center;}
+.logo{width:80px;height:60px;border:1px dashed #aaa;display:flex;align-items:center;justify-content:center;color:#999;overflow:hidden;}
+.logo img{max-width:100%;max-height:100%;object-fit:contain;}
+#tbl tbody{display:block;min-height:15cm;}
+#tbl thead,#tbl tbody tr{display:table;width:100%;table-layout:fixed;}
+table{width:100%;border-collapse:collapse;margin-top:10px;flex-grow:1;}
+th,td{border:1px solid #ccc;padding:6px;font-size:13px;vertical-align:top;}
+th{background:#f0f0f0;}
+td[contenteditable]{min-height:20px;}
+.controls-line{display:flex;gap:5px;margin:10px 0;flex-wrap:wrap;}
+.controls-line button, .controls-line select{flex:1;min-width:70px;}
+.signature{margin-top:auto;padding-top:20px;width:100%;display:flex;justify-content:space-between;gap:10px;}
+.sig-box{border-top:1px solid #999;padding-top:4px;text-align:center;min-width:140px;flex:1;}
+label{display:block;margin-top:8px;font-weight:500;}
+.print-btn,.clear-btn{margin-bottom:10px;padding:8px 12px;font-size:14px;cursor:pointer;width:100%;}
+@media print{
+  body,.invoice-wrapper{margin:0;padding:0;box-shadow:none;width:210mm;height:297mm;}
+  .app{display:block;}
+  .card,.print-btn,.clear-btn{display:none;}
+  table,th,td{border:1px solid #000;}
+  .sig-box{border-top:1px solid #000;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="card">
+    <button class="print-btn" onclick="window.print()">Print Invoice</button>
+    <button class="clear-btn" id="clear-invoice">Clear Invoice</button>
+
+    <!-- unified controls line -->
+    <div class="controls-line">
+      <button id="add-row">+ Row</button>
+      <button id="del-row">- Row</button>
+      <button id="add-col">+ Col</button>
+      <button id="del-col">- Col</button>
+    </div>
+
+    <div>
+      <label>Company Name</label>
+      <input id="company-name" placeholder="Company Name">
+    </div>
+    <div>
+      <label>Company Address</label>
+      <textarea id="company-address" rows="2" placeholder="Company Address"></textarea>
+    </div>
+    <div>
+      <label>Logo Upload</label>
+      <input type="file" id="logo-upload" accept="image/*">
+    </div>
+    <div>
+      <label>Invoice Number</label>
+      <input id="invoice-number" placeholder="Invoice #" value="001">
+    </div>
+    <div>
+      <label>Invoice Date</label>
+      <input type="date" id="invoice-date-input">
+    </div>
+  </div>
+
+  <div class="invoice-wrapper" id="invoice-root">
+    <div class="invoice-header">
+      <div class="company">
+        <div class="logo" id="logo">Logo</div>
+        <div>
+          <div contenteditable id="company_title">Your Company</div>
+          <div id="company_addr" style="color:#666;font-size:12px">Company Address</div>
+        </div>
+      </div>
+      <div>
+        <div>Invoice #: <span contenteditable id="invoice_no">001</span></div>
+        <div style="color:#666;font-size:12px">Date: <span id="invoice_date"></span></div>
+      </div>
+    </div>
+
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th contenteditable>Item</th>
+          <th contenteditable>Description</th>
+          <th contenteditable>Qty</th>
+          <th contenteditable>Price</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td contenteditable></td><td contenteditable></td><td contenteditable></td><td contenteditable></td></tr>
+        <tr><td contenteditable></td><td contenteditable></td><td contenteditable></td><td contenteditable></td></tr>
+        <tr><td contenteditable></td><td contenteditable></td><td contenteditable></td><td contenteditable></td></tr>
+      </tbody>
+    </table>
+
+    <div class="signature">
+      <div class="sig-box"><div contenteditable>Receiver Name</div></div>
+      <div class="sig-box">Signature<br><br></div>
+      <div class="sig-box"><div contenteditable>Contact Information</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const LS_KEY="invoiceDataV2";
+  const invoiceDateEl=document.getElementById('invoice_date');
+  const logoEl=document.getElementById('logo');
+  const tbody=document.querySelector('#tbl tbody');
+  const thead=document.querySelector('#tbl thead tr');
+
+  // set current date default
+  const now=new Date();
+  invoiceDateEl.textContent=now.toLocaleDateString();
+  document.getElementById('invoice-date-input').valueAsDate=now;
+
+  // save function (includes logo as base64)
+  function saveInvoice(){
+    const data={
+      companyTitle:document.getElementById('company_title').textContent,
+      companyAddr:document.getElementById('company_addr').textContent,
+      invoiceNo:document.getElementById('invoice_no').textContent,
+      invoiceDate:document.getElementById('invoice_date').textContent,
+      table:document.getElementById('tbl').innerHTML,
+      logoSrc:logoEl.querySelector('img')?logoEl.querySelector('img').src:null
+    };
+    localStorage.setItem(LS_KEY,JSON.stringify(data));
+  }
+
+  // restore
+  const saved=localStorage.getItem(LS_KEY);
+  if(saved){
+    const d=JSON.parse(saved);
+    document.getElementById('company_title').textContent=d.companyTitle;
+    document.getElementById('company_addr').textContent=d.companyAddr;
+    document.getElementById('invoice_no').textContent=d.invoiceNo;
+    invoiceDateEl.textContent=d.invoiceDate;
+    document.getElementById('tbl').innerHTML=d.table;
+    if(d.logoSrc){
+      logoEl.innerHTML='';
+      const img=document.createElement('img');
+      img.src=d.logoSrc;
+      logoEl.appendChild(img);
+    }
+    document.getElementById('company-name').value=d.companyTitle;
+    document.getElementById('company-address').value=d.companyAddr;
+    document.getElementById('invoice-number').value=d.invoiceNo;
+  }
+
+  // clear but keep logo/company details
+  document.getElementById('clear-invoice').addEventListener('click',()=>{
+    // only reset table & invoice number/date, keep company & logo
+    document.getElementById('invoice_no').textContent='001';
+    document.getElementById('invoice-number').value='001';
+    const today=new Date();
+    document.getElementById('invoice-date-input').valueAsDate=today;
+    invoiceDateEl.textContent=today.toLocaleDateString();
+    tbody.innerHTML='';
+    for(let i=0;i<3;i++){
+      const tr=document.createElement('tr');
+      for(let j=0;j<thead.children.length;j++){
+        const td=document.createElement('td');
+        td.contentEditable=true;
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    }
+    saveInvoice();
+  });
+
+  document.getElementById('logo-upload').addEventListener('change',e=>{
+    const file=e.target.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      logoEl.innerHTML='';
+      const img=document.createElement('img'); img.src=ev.target.result;
+      logoEl.appendChild(img);
+      saveInvoice();
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.getElementById('add-row').addEventListener('click',()=>{
+    const tr=document.createElement('tr');
+    for(let i=0;i<thead.children.length;i++){
+      const td=document.createElement('td'); td.contentEditable=true;
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+    saveInvoice();
+  });
+
+  document.getElementById('del-row').addEventListener('click',()=>{
+    if(tbody.children.length>1){
+      tbody.removeChild(tbody.lastChild);
+      saveInvoice();
+    }
+  });
+
+  document.getElementById('add-col').addEventListener('click',()=>{
+    const th=document.createElement('th');
+    th.contentEditable=true;
+    th.textContent="New Column";
+    thead.appendChild(th);
+    tbody.querySelectorAll('tr').forEach(r=>{
+      const td=document.createElement('td'); td.contentEditable=true; r.appendChild(td);
+    });
+    saveInvoice();
+  });
+
+  document.getElementById('del-col').addEventListener('click',()=>{
+    if(thead.children.length>1){
+      thead.removeChild(thead.lastChild);
+      tbody.querySelectorAll('tr').forEach(r=>{
+        if(r.children.length>1) r.removeChild(r.lastChild);
+      });
+      saveInvoice();
+    }
+  });
+
+  ['company-name','company-address','invoice-number','invoice-date-input']
+  .forEach(id=>{
+    document.getElementById(id).addEventListener('input',()=>{
+      if(id==='company-name')
+        document.getElementById('company_title').textContent=document.getElementById('company-name').value||'Your Company';
+      if(id==='company-address')
+        document.getElementById('company_addr').textContent=document.getElementById('company-address').value||'Company Address';
+      if(id==='invoice-number')
+        document.getElementById('invoice_no').textContent=document.getElementById('invoice-number').value||'001';
+      if(id==='invoice-date-input'){
+        const d=new Date(document.getElementById('invoice-date-input').value);
+        invoiceDateEl.textContent=d.toLocaleDateString();
+      }
+      saveInvoice();
+    });
+  });
+
+  document.getElementById('invoice-root').addEventListener('input', saveInvoice);
+})();
+</script>
+</body>
+</html>
