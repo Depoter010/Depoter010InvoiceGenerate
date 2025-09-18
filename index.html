@@ -20,11 +20,10 @@ table{width:100%;border-collapse:collapse;margin-top:10px;flex-grow:1;}
 th,td{border:1px solid #ccc;padding:6px;font-size:13px;vertical-align:top;}
 th{background:#f0f0f0;}
 td[contenteditable]{min-height:20px;}
-.controls{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;}
-.controls button{flex:1;min-width:80px;}
+.controls-line{display:flex;gap:5px;margin:10px 0;flex-wrap:wrap;}
+.controls-line button, .controls-line select{flex:1;min-width:70px;}
 .signature{margin-top:auto;padding-top:20px;width:100%;display:flex;justify-content:space-between;gap:10px;}
 .sig-box{border-top:1px solid #999;padding-top:4px;text-align:center;min-width:140px;flex:1;}
-input,textarea,select{width:100%;box-sizing:border-box;margin-top:3px;}
 label{display:block;margin-top:8px;font-weight:500;}
 .print-btn,.clear-btn{margin-bottom:10px;padding:8px 12px;font-size:14px;cursor:pointer;width:100%;}
 @media print{
@@ -42,6 +41,14 @@ label{display:block;margin-top:8px;font-weight:500;}
     <button class="print-btn" onclick="window.print()">Print Invoice</button>
     <button class="clear-btn" id="clear-invoice">Clear Invoice</button>
 
+    <!-- unified controls line -->
+    <div class="controls-line">
+      <button id="add-row">+ Row</button>
+      <button id="del-row">- Row</button>
+      <button id="add-col">+ Col</button>
+      <button id="del-col">- Col</button>
+    </div>
+
     <div>
       <label>Company Name</label>
       <input id="company-name" placeholder="Company Name">
@@ -54,27 +61,6 @@ label{display:block;margin-top:8px;font-weight:500;}
       <label>Logo Upload</label>
       <input type="file" id="logo-upload" accept="image/*">
     </div>
-
-    <!-- Row Controls in one line -->
-    <label>Row Controls</label>
-    <div class="controls">
-      <button id="add-row">+ Row</button>
-      <button id="del-row">- Row</button>
-    </div>
-
-    <!-- Column Controls in one line -->
-    <label>Column Controls</label>
-    <div class="controls">
-      <select id="column-select" style="flex:2">
-        <option value="item">Item Column</option>
-        <option value="description">Description Column</option>
-        <option value="qty">Quantity Column</option>
-        <option value="price">Price Column</option>
-      </select>
-      <button id="add-col">+ Col</button>
-      <button id="del-col">- Col</button>
-    </div>
-
     <div>
       <label>Invoice Number</label>
       <input id="invoice-number" placeholder="Invoice #" value="001">
@@ -85,7 +71,6 @@ label{display:block;margin-top:8px;font-weight:500;}
     </div>
   </div>
 
-  <!-- ===== INVOICE PREVIEW ===== -->
   <div class="invoice-wrapper" id="invoice-root">
     <div class="invoice-header">
       <div class="company">
@@ -127,47 +112,59 @@ label{display:block;margin-top:8px;font-weight:500;}
 
 <script>
 (function(){
-  const LS_KEY = "invoiceData";
-  const invoiceDate = document.getElementById('invoice_date');
-  const logoElement = document.getElementById('logo');
-  const tbody = document.querySelector('#tbl tbody');
-  const thead = document.querySelector('#tbl thead tr');
-  const columnSelect = document.getElementById('column-select');
+  const LS_KEY="invoiceDataV2";
+  const invoiceDateEl=document.getElementById('invoice_date');
+  const logoEl=document.getElementById('logo');
+  const tbody=document.querySelector('#tbl tbody');
+  const thead=document.querySelector('#tbl thead tr');
 
-  // initial date
-  const now = new Date();
-  invoiceDate.textContent = now.toLocaleDateString();
-  document.getElementById('invoice-date-input').valueAsDate = now;
+  // set current date default
+  const now=new Date();
+  invoiceDateEl.textContent=now.toLocaleDateString();
+  document.getElementById('invoice-date-input').valueAsDate=now;
 
+  // save function (includes logo as base64)
   function saveInvoice(){
-    const data = {
-      companyTitle: document.getElementById('company_title').textContent,
-      companyAddr: document.getElementById('company_addr').textContent,
-      invoiceNo: document.getElementById('invoice_no').textContent,
-      invoiceDate: document.getElementById('invoice_date').textContent,
-      table: document.getElementById('tbl').innerHTML
+    const data={
+      companyTitle:document.getElementById('company_title').textContent,
+      companyAddr:document.getElementById('company_addr').textContent,
+      invoiceNo:document.getElementById('invoice_no').textContent,
+      invoiceDate:document.getElementById('invoice_date').textContent,
+      table:document.getElementById('tbl').innerHTML,
+      logoSrc:logoEl.querySelector('img')?logoEl.querySelector('img').src:null
     };
-    localStorage.setItem(LS_KEY, JSON.stringify(data));
+    localStorage.setItem(LS_KEY,JSON.stringify(data));
   }
 
   // restore
-  const saved = localStorage.getItem(LS_KEY);
+  const saved=localStorage.getItem(LS_KEY);
   if(saved){
-    const d = JSON.parse(saved);
-    document.getElementById('company_title').textContent = d.companyTitle;
-    document.getElementById('company_addr').textContent = d.companyAddr;
-    document.getElementById('invoice_no').textContent = d.invoiceNo;
-    invoiceDate.textContent = d.invoiceDate;
-    document.getElementById('tbl').innerHTML = d.table;
+    const d=JSON.parse(saved);
+    document.getElementById('company_title').textContent=d.companyTitle;
+    document.getElementById('company_addr').textContent=d.companyAddr;
+    document.getElementById('invoice_no').textContent=d.invoiceNo;
+    invoiceDateEl.textContent=d.invoiceDate;
+    document.getElementById('tbl').innerHTML=d.table;
+    if(d.logoSrc){
+      logoEl.innerHTML='';
+      const img=document.createElement('img');
+      img.src=d.logoSrc;
+      logoEl.appendChild(img);
+    }
+    document.getElementById('company-name').value=d.companyTitle;
+    document.getElementById('company-address').value=d.companyAddr;
+    document.getElementById('invoice-number').value=d.invoiceNo;
   }
 
+  // clear but keep logo/company details
   document.getElementById('clear-invoice').addEventListener('click',()=>{
-    document.getElementById('invoice-number').value = '001';
-    document.getElementById('invoice_no').textContent = '001';
-    const today = new Date();
-    document.getElementById('invoice-date-input').valueAsDate = today;
-    invoiceDate.textContent = today.toLocaleDateString();
-    tbody.innerHTML = '';
+    // only reset table & invoice number/date, keep company & logo
+    document.getElementById('invoice_no').textContent='001';
+    document.getElementById('invoice-number').value='001';
+    const today=new Date();
+    document.getElementById('invoice-date-input').valueAsDate=today;
+    invoiceDateEl.textContent=today.toLocaleDateString();
+    tbody.innerHTML='';
     for(let i=0;i<3;i++){
       const tr=document.createElement('tr');
       for(let j=0;j<thead.children.length;j++){
@@ -180,46 +177,39 @@ label{display:block;margin-top:8px;font-weight:500;}
     saveInvoice();
   });
 
-  document.getElementById('logo-upload').addEventListener('change', e=>{
-    const file = e.target.files[0]; if(!file) return;
-    const reader = new FileReader();
-    reader.onload = ev=>{
-      logoElement.innerHTML='';
+  document.getElementById('logo-upload').addEventListener('change',e=>{
+    const file=e.target.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      logoEl.innerHTML='';
       const img=document.createElement('img'); img.src=ev.target.result;
-      logoElement.appendChild(img);
+      logoEl.appendChild(img);
+      saveInvoice();
     };
     reader.readAsDataURL(file);
   });
 
-  document.getElementById('add-row').addEventListener('click', ()=>{
+  document.getElementById('add-row').addEventListener('click',()=>{
     const tr=document.createElement('tr');
     for(let i=0;i<thead.children.length;i++){
-      const td=document.createElement('td');
-      td.contentEditable=true;
+      const td=document.createElement('td'); td.contentEditable=true;
       tr.appendChild(td);
     }
     tbody.appendChild(tr);
     saveInvoice();
   });
 
-  document.getElementById('del-row').addEventListener('click', ()=>{
+  document.getElementById('del-row').addEventListener('click',()=>{
     if(tbody.children.length>1){
       tbody.removeChild(tbody.lastChild);
       saveInvoice();
     }
   });
 
-  document.getElementById('add-col').addEventListener('click', ()=>{
-    let headerText="New Column";
-    switch(columnSelect.value){
-      case 'item': headerText="Item";break;
-      case 'description': headerText="Description";break;
-      case 'qty': headerText="Qty";break;
-      case 'price': headerText="Price";break;
-    }
+  document.getElementById('add-col').addEventListener('click',()=>{
     const th=document.createElement('th');
     th.contentEditable=true;
-    th.textContent=headerText;
+    th.textContent="New Column";
     thead.appendChild(th);
     tbody.querySelectorAll('tr').forEach(r=>{
       const td=document.createElement('td'); td.contentEditable=true; r.appendChild(td);
@@ -227,7 +217,7 @@ label{display:block;margin-top:8px;font-weight:500;}
     saveInvoice();
   });
 
-  document.getElementById('del-col').addEventListener('click', ()=>{
+  document.getElementById('del-col').addEventListener('click',()=>{
     if(thead.children.length>1){
       thead.removeChild(thead.lastChild);
       tbody.querySelectorAll('tr').forEach(r=>{
@@ -237,17 +227,18 @@ label{display:block;margin-top:8px;font-weight:500;}
     }
   });
 
-  ['company-name','company-address','invoice-number','invoice-date-input'].forEach(id=>{
+  ['company-name','company-address','invoice-number','invoice-date-input']
+  .forEach(id=>{
     document.getElementById(id).addEventListener('input',()=>{
       if(id==='company-name')
-        document.getElementById('company_title').textContent = document.getElementById('company-name').value || 'Your Company';
+        document.getElementById('company_title').textContent=document.getElementById('company-name').value||'Your Company';
       if(id==='company-address')
-        document.getElementById('company_addr').textContent = document.getElementById('company-address').value || 'Company Address';
+        document.getElementById('company_addr').textContent=document.getElementById('company-address').value||'Company Address';
       if(id==='invoice-number')
-        document.getElementById('invoice_no').textContent = document.getElementById('invoice-number').value || '001';
+        document.getElementById('invoice_no').textContent=document.getElementById('invoice-number').value||'001';
       if(id==='invoice-date-input'){
         const d=new Date(document.getElementById('invoice-date-input').value);
-        invoiceDate.textContent=d.toLocaleDateString();
+        invoiceDateEl.textContent=d.toLocaleDateString();
       }
       saveInvoice();
     });
