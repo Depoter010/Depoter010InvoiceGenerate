@@ -26,6 +26,11 @@ td[contenteditable]{min-height:20px;}
 .sig-box{border-top:1px solid #999;padding-top:4px;text-align:center;min-width:140px;flex:1;}
 label{display:block;margin-top:8px;font-weight:500;}
 .print-btn,.clear-btn{margin-bottom:10px;padding:8px 12px;font-size:14px;cursor:pointer;width:100%;}
+.address-section{margin-top:15px;display:flex;gap:20px;flex-wrap:wrap;}
+.address-box{flex:1;min-width:200px;padding:10px;} /* <-- no border now */
+.address-box h3{margin-top:0;font-size:16px;}
+.address-box div[contenteditable]{min-height:18px;border-bottom:1px dotted #ccc;margin-bottom:6px;padding:2px 0;}
+.same-checkbox{margin-bottom:10px;font-size:14px;}
 @media print{
   body,.invoice-wrapper{margin:0;padding:0;box-shadow:none;width:210mm;height:297mm;}
   .app{display:block;}
@@ -85,6 +90,33 @@ label{display:block;margin-top:8px;font-weight:500;}
       </div>
     </div>
 
+    <!-- NEW: Billing & Shipping Address -->
+    <div class="same-checkbox">
+      <label><input type="checkbox" id="same-address"> Shipping same as Billing</label>
+    </div>
+
+    <div class="address-section">
+      <div class="address-box" id="billing-box">
+        <h3>Sender</h3>
+        <div contenteditable data-field="bill_name">Name</div>
+        <div contenteditable data-field="bill_contact">Contact No</div>
+        <div contenteditable data-field="bill_address">Address</div>
+        <div contenteditable data-field="bill_email">Email</div>
+        <div contenteditable data-field="bill_uae">UAE</div>
+        <div contenteditable data-field="bill_state_city">State & City</div>
+      </div>
+      <div class="address-box" id="shipping-box">
+        <h3>Recipient</h3>
+        <div contenteditable data-field="ship_name">Name</div>
+        <div contenteditable data-field="ship_contact">Contact No</div>
+        <div contenteditable data-field="ship_address">Address</div>
+        <div contenteditable data-field="ship_email">Email</div>
+        <div contenteditable data-field="ship_uae">UAE</div>
+        <div contenteditable data-field="ship_state_city">State & City</div>
+      </div>
+    </div>
+    <!-- END Billing & Shipping -->
+
     <table id="tbl">
       <thead>
         <tr>
@@ -116,16 +148,34 @@ label{display:block;margin-top:8px;font-weight:500;}
   const tbody=document.querySelector('#tbl tbody');
   const thead=document.querySelector('#tbl thead tr');
 
-  // Set current date default
+  const companyTitle=document.getElementById('company_title');
+  const companyAddr=document.getElementById('company_addr');
+  const companyInput=document.getElementById('company-name');
+  const companyAddrInput=document.getElementById('company-address');
+
+  // persistent storage for logo/company
+  const saved = JSON.parse(localStorage.getItem('invoicePersistent')||'{}');
+  if(saved.companyName){companyTitle.textContent = companyInput.value = saved.companyName;}
+  if(saved.companyAddr){companyAddr.textContent = companyAddrInput.value = saved.companyAddr;}
+  if(saved.logo){ logoEl.innerHTML='<img src="'+saved.logo+'">'; }
+
+  // set current date
   const now=new Date();
   invoiceDateEl.textContent=now.toLocaleDateString();
   document.getElementById('invoice-date-input').valueAsDate=now;
 
-  function saveInvoice() {
-    // Offline version: do nothing for localStorage
+  function savePersistent(){
+    localStorage.setItem('invoicePersistent', JSON.stringify({
+      companyName: companyTitle.textContent,
+      companyAddr: companyAddr.textContent,
+      logo: (logoEl.querySelector('img')?logoEl.querySelector('img').src:null)
+    }));
   }
 
-  // Clear invoice table
+  companyInput.addEventListener('input',()=>{companyTitle.textContent = companyInput.value||'Your Company';savePersistent();});
+  companyAddrInput.addEventListener('input',()=>{companyAddr.textContent = companyAddrInput.value||'Company Address';savePersistent();});
+
+  // Clear invoice table only
   document.getElementById('clear-invoice').addEventListener('click',()=>{
     document.getElementById('invoice_no').textContent='001';
     document.getElementById('invoice-number').value='001';
@@ -144,7 +194,7 @@ label{display:block;margin-top:8px;font-weight:500;}
     }
   });
 
-  // Logo upload
+  // logo upload
   document.getElementById('logo-upload').addEventListener('change',e=>{
     const file=e.target.files[0]; if(!file) return;
     const reader=new FileReader();
@@ -152,11 +202,12 @@ label{display:block;margin-top:8px;font-weight:500;}
       logoEl.innerHTML='';
       const img=document.createElement('img'); img.src=ev.target.result;
       logoEl.appendChild(img);
+      savePersistent();
     };
     reader.readAsDataURL(file);
   });
 
-  // Add/delete rows
+  // row/col controls
   document.getElementById('add-row').addEventListener('click',()=>{
     const tr=document.createElement('tr');
     for(let i=0;i<thead.children.length;i++){
@@ -166,12 +217,8 @@ label{display:block;margin-top:8px;font-weight:500;}
     tbody.appendChild(tr);
   });
   document.getElementById('del-row').addEventListener('click',()=>{
-    if(tbody.children.length>1){
-      tbody.removeChild(tbody.lastChild);
-    }
+    if(tbody.children.length>1){tbody.removeChild(tbody.lastChild);}
   });
-
-  // Add/delete columns
   document.getElementById('add-col').addEventListener('click',()=>{
     const th=document.createElement('th'); th.contentEditable=true; th.textContent="New Column";
     thead.appendChild(th);
@@ -188,22 +235,40 @@ label{display:block;margin-top:8px;font-weight:500;}
     }
   });
 
-  // Sync input fields
-  ['company-name','company-address','invoice-number','invoice-date-input']
-  .forEach(id=>{
-    document.getElementById(id).addEventListener('input',()=>{
-      if(id==='company-name')
-        document.getElementById('company_title').textContent=document.getElementById('company-name').value||'Your Company';
-      if(id==='company-address')
-        document.getElementById('company_addr').textContent=document.getElementById('company-address').value||'Company Address';
-      if(id==='invoice-number')
-        document.getElementById('invoice_no').textContent=document.getElementById('invoice-number').value||'001';
-      if(id==='invoice-date-input'){
-        const d=new Date(document.getElementById('invoice-date-input').value);
-        invoiceDateEl.textContent=d.toLocaleDateString();
-      }
-    });
+  // invoice number/date sync
+  document.getElementById('invoice-number').addEventListener('input',()=>{
+    document.getElementById('invoice_no').textContent=document.getElementById('invoice-number').value||'001';
   });
+  document.getElementById('invoice-date-input').addEventListener('input',()=>{
+    const d=new Date(document.getElementById('invoice-date-input').value);
+    invoiceDateEl.textContent=d.toLocaleDateString();
+  });
+
+  // --- NEW: Same as Billing functionality ---
+  const sameCheck = document.getElementById('same-address');
+  const billFields = document.querySelectorAll('#billing-box [data-field]');
+  const shipFields = document.querySelectorAll('#shipping-box [data-field]');
+
+  function copyBillToShip(){
+    billFields.forEach((b,i)=>{ shipFields[i].textContent = b.textContent; });
+  }
+
+  sameCheck.addEventListener('change',()=>{
+    if(sameCheck.checked){
+      copyBillToShip();
+      billFields.forEach((b,i)=>{
+        b.addEventListener('input', syncHandler);
+      });
+    } else {
+      billFields.forEach((b,i)=>{
+        b.removeEventListener('input', syncHandler);
+      });
+    }
+  });
+
+  function syncHandler(){
+    copyBillToShip();
+  }
 })();
 </script>
 </body>
